@@ -1,13 +1,13 @@
 import streamlit as st
-import pytesseract
 from PIL import Image
 import cv2
 import numpy as np
+import easyocr
 
-st.set_page_config(page_title="OCR Text Extractor", layout="wide")
+st.set_page_config(page_title="OCR Model Dashboard", layout="wide")
 
 st.title("📄 OCR Model Dashboard")
-st.write("Upload an image or scanned document to extract text")
+st.write("Upload a document image to extract text")
 
 uploaded_file = st.file_uploader(
     "Upload Image",
@@ -15,33 +15,28 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file:
-    # Load image
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Image", width=400)
 
-    # Convert PIL image to OpenCV format
     img = np.array(image)
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-    # Preprocessing for OCR
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    thresh = cv2.threshold(
-        gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-    )[1]
+    reader = easyocr.Reader(['en'], gpu=False)
+    results = reader.readtext(gray)
 
-    # OCR
-    text = pytesseract.image_to_string(thresh, lang="eng")
+    extracted_text = ""
+    for r in results:
+        extracted_text += r[1] + "\n"
 
     st.subheader("📝 Extracted Text")
 
-    if text.strip():
-        st.text_area("Result", text, height=300)
+    if extracted_text.strip():
+        st.text_area("Result", extracted_text, height=300)
     else:
-        st.warning("⚠️ No text detected. Try a clearer image.")
+        st.warning("⚠️ No text detected. Try a clearer document image.")
 
     st.download_button(
-        label="Download Text",
-        data=text,
-        file_name="extracted_text.txt",
-        mime="text/plain"
+        "Download Text",
+        extracted_text,
+        file_name="extracted_text.txt"
     )
