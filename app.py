@@ -1,13 +1,17 @@
 import streamlit as st
+import pytesseract
 from PIL import Image
 import cv2
 import numpy as np
-import easyocr
 
-st.set_page_config(page_title="OCR Model Dashboard", layout="wide")
+# Set page config
+st.set_page_config(page_title="OCR Text Extractor", layout="wide")
+
+# Tesseract path (Windows users only)
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 st.title("📄 OCR Model Dashboard")
-st.write("Upload a document image to extract text")
+st.write("Upload an image or scanned document to extract text")
 
 uploaded_file = st.file_uploader(
     "Upload Image",
@@ -16,27 +20,19 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image", width=400)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
-    img = np.array(image)
-    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    img_array = np.array(image)
+    gray = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
 
-    reader = easyocr.Reader(['en'], gpu=False)
-    results = reader.readtext(gray)
-
-    extracted_text = ""
-    for r in results:
-        extracted_text += r[1] + "\n"
+    text = pytesseract.image_to_string(gray)
 
     st.subheader("📝 Extracted Text")
-
-    if extracted_text.strip():
-        st.text_area("Result", extracted_text, height=300)
-    else:
-        st.warning("⚠️ No text detected. Try a clearer document image.")
+    st.text_area("Result", text, height=300)
 
     st.download_button(
-        "Download Text",
-        extracted_text,
-        file_name="extracted_text.txt"
+        label="Download Text",
+        data=text,
+        file_name="extracted_text.txt",
+        mime="text/plain"
     )
